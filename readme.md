@@ -1,19 +1,41 @@
-# Sports E-commerce Website
+# 🏀 Sports E-Commerce Website
 
-## Description
-This project is a sports e-commerce website with product management and user management features.
+## 📌 Overview
+A full-stack sports e-commerce web application that allows users to browse and purchase sports products online.  
+The system includes user authentication and an admin dashboard for product & user management.
 
-## Features
+---
+
+## ✨ Features
+
+### 👤 User Features
+- Register & Login
+- Browse products
+- View product details
+- Add to cart
+- Authentication & Authorization
+
+### 🛠 Admin Features
 - Product CRUD (Create, Read, Update, Delete)
 - User management
-- Authentication & authorization
 - Admin dashboard
 
-## Technologies Used
+---
+
+## 🧰 Tech Stack
+
+### Frontend
 - HTML
 - CSS
 - JavaScript
-- PostgreSQL (if used)
 
-## Author
-NBD
+### Backend
+- Node.js
+- Express.js
+
+### Database
+- MongoDB
+
+---
+
+## 🗂 Project Structure
