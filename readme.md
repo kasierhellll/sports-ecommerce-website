@@ -39,3 +39,27 @@ The system includes user authentication and an admin dashboard for product & use
 ---
 
 ## 🗂 Project Structure
+backend/
+frontend/
+
+---
+
+## 🚀 Installation
+
+### 1️⃣ Clone the repository
+git clone https://github.com/kasierhellll/sports-ecommerce-website.git
+
+
+### 2️⃣ Install backend dependencies
+cd backend
+npm install
+
+
+### 3️⃣ Run server
+
+
+---
+
+## 👨‍💻 Author
+Kaiserhell
+
