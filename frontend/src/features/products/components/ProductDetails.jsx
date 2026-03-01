@@ -1,0 +1,422 @@
+import React, { useEffect, useState } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import { useNavigate, useParams, useLocation } from 'react-router-dom'
+import { clearSelectedProduct, fetchProductByIdAsync, resetProductFetchStatus, selectProductFetchStatus, selectSelectedProduct } from '../ProductSlice'
+import { Box,Checkbox,Rating, Stack,Typography, useMediaQuery,Button,IconButton} from '@mui/material'
+import { addToCartAsync, resetCartItemAddStatus, selectCartItemAddStatus, selectCartItems } from '../../cart/CartSlice'
+import { selectLoggedInUser } from '../../auth/AuthSlice'
+import { fetchReviewsByProductIdAsync,resetReviewFetchStatus,selectReviewFetchStatus,selectReviews,} from '../../review/ReviewSlice'
+import { Reviews } from '../../review/components/Reviews'
+import {toast} from 'react-toastify'
+import { motion } from 'framer-motion'
+import FavoriteBorder from '@mui/icons-material/FavoriteBorder';
+import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined';
+import CachedOutlinedIcon from '@mui/icons-material/CachedOutlined';
+import Favorite from '@mui/icons-material/Favorite'
+import { createWishlistItemAsync, deleteWishlistItemByIdAsync, resetWishlistItemAddStatus, resetWishlistItemDeleteStatus, selectWishlistItemAddStatus, selectWishlistItemDeleteStatus, selectWishlistItems } from '../../wishlist/WishlistSlice'
+import { useTheme } from '@mui/material'
+import KeyboardArrowLeft from '@mui/icons-material/KeyboardArrowLeft';
+import KeyboardArrowRight from '@mui/icons-material/KeyboardArrowRight';
+import BackHeader from '../../../components/BackHeader';
+import SwipeableViews from 'react-swipeable-views';
+import { autoPlay } from 'react-swipeable-views-utils';
+import MobileStepper from '@mui/material/MobileStepper';
+import Lottie from 'lottie-react'
+import {loadingAnimation} from '../../../assets'
+
+const SIZES=['XS','S','M','L','XL']
+const COLORS=['#020202','#F6F6F6','#B82222','#BEA9A9','#E2BB8D']
+const AutoPlaySwipeableViews = autoPlay(SwipeableViews);
+
+export const ProductDetails = () => {
+    const {id}=useParams()
+    const product=useSelector(selectSelectedProduct)
+    const loggedInUser=useSelector(selectLoggedInUser)
+    const dispatch=useDispatch()
+    const cartItems=useSelector(selectCartItems)
+    const cartItemAddStatus=useSelector(selectCartItemAddStatus)
+    const [quantity,setQuantity]=useState(1)
+    const [selectedSize,setSelectedSize]=useState('')
+    const [selectedColorIndex,setSelectedColorIndex]=useState(-1)
+    const reviews=useSelector(selectReviews)
+    const [selectedImageIndex,setSelectedImageIndex]=useState(0)
+    const theme=useTheme()
+    const is1420=useMediaQuery(theme.breakpoints.down(1420))
+    const is990=useMediaQuery(theme.breakpoints.down(990))
+    const is840=useMediaQuery(theme.breakpoints.down(840))
+    const is500=useMediaQuery(theme.breakpoints.down(500))
+    const is480=useMediaQuery(theme.breakpoints.down(480))
+    const is387=useMediaQuery(theme.breakpoints.down(387))
+    const is340=useMediaQuery(theme.breakpoints.down(340))
+
+    const wishlistItems=useSelector(selectWishlistItems)
+
+    const isProductAlreadyInCart=cartItems.some((item)=>item.product._id===id)
+    const isProductAlreadyinWishlist=wishlistItems.some((item)=>item.product._id===id)
+
+    const productFetchStatus=useSelector(selectProductFetchStatus)
+    const reviewFetchStatus=useSelector(selectReviewFetchStatus)
+
+    const totalReviewRating=reviews.reduce((acc,review)=>acc+review.rating,0)
+    const totalReviews=reviews.length
+    const averageRating=parseInt(Math.ceil(totalReviewRating/totalReviews))
+
+    const wishlistItemAddStatus=useSelector(selectWishlistItemAddStatus)
+    const wishlistItemDeleteStatus=useSelector(selectWishlistItemDeleteStatus)
+    
+    const navigate=useNavigate()
+    const location = useLocation();
+    useEffect(()=>{
+        window.scrollTo({
+            top:0,
+            behavior:"instant"
+        })
+    },[dispatch])
+    
+    useEffect(()=>{
+        if(id){
+            dispatch(fetchProductByIdAsync(id))
+            dispatch(fetchReviewsByProductIdAsync(id))
+        }
+    },[id])
+
+    useEffect(()=>{
+        if(cartItemAddStatus==='fulfilled'){
+            toast.success("Sản phẩm đã được thêm vào giỏ hàng")
+        } else if(cartItemAddStatus==='rejected'){
+            toast.error('Lỗi khi thêm sản phẩm vào giỏ hàng, vui lòng thử lại sau')
+        }
+    },[cartItemAddStatus])
+
+    useEffect(()=>{
+        if(wishlistItemAddStatus==='fulfilled'){
+            toast.success("Sản phẩm đã được thêm vào danh sách yêu thích")
+        } else if(wishlistItemAddStatus==='rejected'){
+            toast.error("Lỗi khi thêm sản phẩm vào danh sách yêu thích, vui lòng thử lại sau")
+        }
+    },[wishlistItemAddStatus])
+
+    useEffect(()=>{
+        if(wishlistItemDeleteStatus==='fulfilled'){
+            toast.success("Sản phẩm đã được xóa khỏi danh sách yêu thích")
+        } else if(wishlistItemDeleteStatus==='rejected'){
+            toast.error("Lỗi khi xóa sản phẩm khỏi danh sách yêu thích, vui lòng thử lại sau")
+        }
+    },[wishlistItemDeleteStatus])
+
+    useEffect(()=>{
+        if(productFetchStatus==='rejected'){
+            toast.error("Lỗi khi lấy thông tin sản phẩm, vui lòng thử lại sau")
+        }
+    },[productFetchStatus])
+
+    useEffect(()=>{
+        if(reviewFetchStatus==='rejected'){
+            toast.error("Lỗi khi lấy đánh giá sản phẩm, vui lòng thử lại sau")
+        }
+    },[reviewFetchStatus])
+
+    useEffect(()=>{
+        return ()=>{
+            dispatch(clearSelectedProduct())
+            dispatch(resetProductFetchStatus())
+            dispatch(resetReviewFetchStatus())
+            dispatch(resetWishlistItemDeleteStatus())
+            dispatch(resetWishlistItemAddStatus())
+            dispatch(resetCartItemAddStatus())
+        }
+    },[dispatch])
+
+    const handleAddToCart=()=>{
+        const item={user:loggedInUser._id,product:id,quantity}
+        dispatch(addToCartAsync(item))
+        setQuantity(1)
+    }
+
+    const handleDecreaseQty=()=>{
+        if(quantity!==1){
+            setQuantity(quantity-1)
+        }
+    }
+    
+    const handleIncreaseQty=()=>{
+        if(quantity<20 && quantity<product.stockQuantity){
+            setQuantity(quantity+1)
+        }
+    }
+
+    const handleSizeSelect=(size)=>{
+        setSelectedSize(size)
+    }
+
+    const handleAddRemoveFromWishlist=(e)=>{
+        if(e.target.checked){
+            const data={user:loggedInUser?._id,product:id}
+            dispatch(createWishlistItemAsync(data))
+        } else if(!e.target.checked){
+            const index=wishlistItems.findIndex((item)=>item.product._id===id)
+            dispatch(deleteWishlistItemByIdAsync(wishlistItems[index]._id));
+        }
+    }
+
+    const [activeStep, setActiveStep] = React.useState(0);
+    const maxSteps = product?.images.length;
+
+    const handleNext = () => {
+        setActiveStep((prevActiveStep) => prevActiveStep + 1);
+    };
+
+    const handleBack = () => {
+        setActiveStep((prevActiveStep) => prevActiveStep - 1);
+    };
+
+    const handleStepChange = (step) => {
+        setActiveStep(step);
+    };
+    
+    return (
+    <>
+    {!(productFetchStatus==='rejected' && reviewFetchStatus==='rejected') && <Stack sx={{justifyContent:'center',alignItems:'center',mb:'2rem',rowGap:"2rem"}}>
+        {
+            (productFetchStatus || reviewFetchStatus) === 'pending'?
+            <Stack width={is500?"35vh":'25rem'} height={'calc(100vh - 4rem)'} justifyContent={'center'} alignItems={'center'}>
+                <Lottie animationData={loadingAnimation}/>
+            </Stack>
+            :
+            <Stack>
+                <BackHeader title="Chi tiết sản phẩm" to={location.state?.from || -1} />
+                {/* chi tiết sản phẩm */}
+                <Stack width={is480?"auto":is1420?"auto":'88rem'} p={is480?2:0} height={is840?"auto":"50rem"} rowGap={5} mt={is840?0:5} justifyContent={'center'} mb={5} flexDirection={is840?"column":"row"} columnGap={is990?"2rem":"5rem"}>
+
+                    {/* cột trái (hình ảnh) */}
+                    <Stack  sx={{flexDirection:"row",columnGap:"2.5rem",alignSelf:"flex-start",height:"100%"}}>
+
+                        {/* chọn hình ảnh */}
+                        {!is1420 && <Stack sx={{display:"flex",rowGap:'1.5rem',height:"100%",overflowY:"scroll"}}>
+                            {
+                                product && product.images.map((image,index)=>(
+                                    <motion.div  whileHover={{scale:1.1}} whileTap={{scale:1}} style={{width:"200px",cursor:"pointer"}} onClick={()=>setSelectedImageIndex(index)}>
+                                        <img style={{width:"100%",objectFit:"contain"}} src={image} alt={`${product.title}`} />
+                                    </motion.div>
+                                ))
+                            }
+                        </Stack>}
+                        
+                        {/* hình ảnh đã chọn */}
+                        <Stack mt={is480?"0rem":'5rem'}>
+                            {
+                                is1420?
+                                <Stack width={is480?"100%":is990?'400px':"500px"} >
+                                    <AutoPlaySwipeableViews width={'100%'} height={'100%'} axis={theme.direction === 'rtl' ? 'x-reverse' : 'x'} index={activeStep} onChangeIndex={handleStepChange} enableMouseEvents >
+                                        {
+                                        product?.images.map((image,index) => (
+                                        <div key={index} style={{width:"100%",height:'100%'}}>
+                                            {
+                                            Math.abs(activeStep - index) <= 2 
+                                                ?
+                                                <Box component="img" sx={{width:'100%',objectFit:"contain",overflow:"hidden",aspectRatio:1/1}} src={image} alt={product?.title} />
+                                                :
+                                                null
+                                            }
+                                        </div>
+                                        ))
+                                        }
+                                    </AutoPlaySwipeableViews>
+
+                                    <MobileStepper steps={maxSteps} position="static" activeStep={activeStep} nextButton={<Button size="small" onClick={handleNext} disabled={activeStep === maxSteps - 1} >Tiếp {theme.direction === 'rtl' ? (<KeyboardArrowLeft />) : (<KeyboardArrowRight />)}</Button>} backButton={<Button size="small" onClick={handleBack} disabled={activeStep === 0}>{theme.direction === 'rtl' ? (<KeyboardArrowRight />) : (<KeyboardArrowLeft />)}Quay lại</Button>}/>
+                                </Stack>
+                                :
+                                <div style={{width:"100%"}}>
+                                    <img style={{width:"100%",objectFit:"contain",aspectRatio:1/1}} src={product?.images[selectedImageIndex]} alt={`${product?.title} image`} />
+                                </div>
+                            }
+                        </Stack>
+
+                    </Stack>
+
+                    {/* cột phải - thông tin sản phẩm */}
+                    <Stack rowGap={"1.5rem"} width={is480?"100%":'25rem'}>
+
+                        {/* tiêu đề, đánh giá, giá */}
+                        <Stack rowGap={".5rem"}>
+
+                            {/* tiêu đề */}
+                            <Typography variant='h4' fontWeight={600}>{product?.title}</Typography>
+
+                            {/* đánh giá */}
+                            <Stack sx={{flexDirection:"row",columnGap:is340?".5rem":"1rem",alignItems:"center",flexWrap:'wrap',rowGap:'1rem'}}>
+                                <Rating value={averageRating} readOnly/>
+                                <Typography>( {totalReviews===0?"Chưa có đánh giá":totalReviews===1?`${totalReviews} đánh giá`:`${totalReviews} đánh giá`} )</Typography>
+                                <Typography color={product?.stockQuantity<=10?"error":product?.stockQuantity<=20?"orange":"green"}>{product?.stockQuantity<=10?`Chỉ còn ${product?.stockQuantity} sản phẩm`:product?.stockQuantity<=20?"Còn vài sản phẩm":"Còn hàng"}</Typography>
+                            </Stack>
+
+                            {/* giá */}
+                            <Typography variant="h5">
+                                {product?.price.toLocaleString('vi-VN')} ₫
+                            </Typography>
+
+                        </Stack>
+
+                        {/* mô tả */}
+                        <Stack rowGap={".8rem"}>
+                            <Typography>{product?.description}</Typography>
+                            <hr />
+                        </Stack>
+                        
+
+                        {/* màu sắc, kích thước và thêm vào giỏ hàng */}
+                        {
+                            !loggedInUser?.isAdmin &&
+                        
+                        <Stack sx={{rowGap:"1.3rem"}} width={'fit-content'}>
+
+                            {/* màu sắc */}
+                            <Stack flexDirection={'row'} alignItems={'center'} columnGap={is387?'5px':'1rem'} width={'fit-content'}>
+                                <Typography>Màu sắc:</Typography>
+                                <Stack flexDirection={'row'} columnGap={is387?".5rem":".2rem"} >
+                                    {
+                                        COLORS.map((color,index)=>(
+                                            <div style={{backgroundColor:"white",border:selectedColorIndex===index?`1px solid ${theme.palette.primary.dark}`:"",width:is340?"40px":"50px",height:is340?"40px":"50px",display:"flex",justifyContent:"center",alignItems:"center",borderRadius:"100%",}}>
+                                                <div onClick={()=>setSelectedColorIndex(index)} style={{width:"40px",height:"40px",border:color==='#F6F6F6'?"1px solid grayText":"",backgroundColor:color,borderRadius:"100%"}}></div>
+                                            </div>
+                                        ))
+                                    }
+                                </Stack>
+                            </Stack>
+                            
+                            {/* kích thước */}
+                            <Stack flexDirection={'row'} alignItems={'center'} columnGap={is387?'5px':'1rem'} width={'fit-content'}>
+                                <Typography>Kích thước:</Typography>
+                                <Stack flexDirection={'row'} columnGap={is387?".5rem":"1rem"}>
+                                    {
+                                        SIZES.map((size)=>(
+                                            <motion.div onClick={()=>handleSizeSelect(size)} whileHover={{scale:1.050}} whileTap={{scale:1}} style={{border:selectedSize===size?'':"1px solid grayText",borderRadius:"8px",width:"30px",height:"30px",display:"flex",justifyContent:"center",alignItems:"center",cursor:"pointer",padding:"1.2rem",backgroundColor:selectedSize===size?"#DB4444":"whitesmoke",color:selectedSize===size?"white":""}}>
+                                                <p>{size}</p>
+                                            </motion.div>
+                                        ))
+                                    }
+                                </Stack>
+                            </Stack>
+
+                            {/* số lượng, thêm vào giỏ và wishlist */}
+                            <Stack flexDirection={"row"} columnGap={is387?".3rem":"1.5rem"} width={'100%'} >
+                                
+                                {/* số lượng */}
+                                <Stack flexDirection={'row'} alignItems={'center'} justifyContent={'space-between'}>
+                                    
+                                    <Stack flexDirection="row" alignItems="center" columnGap="0.5rem">
+                                        <motion.button
+                                            onClick={handleDecreaseQty}
+                                            style={{
+                                            padding: "10px 15px",
+                                            border: "1px solid black",
+                                            borderRadius: "8px",
+                                            background: "white"
+                                            }}
+                                        >
+                                            -
+                                        </motion.button>
+
+                                        <input
+                                            type="number"
+                                            value={quantity}
+                                            min={1}
+                                            max={product?.stockQuantity}
+                                            onChange={(e) => {
+                                            let val = Number(e.target.value)
+                                            if (isNaN(val)) return
+                                            if (val < 1) val = 1
+                                            if (val > product.stockQuantity) val = product.stockQuantity
+                                            setQuantity(val)
+                                            }}
+                                            style={{
+                                            width: "60px",
+                                            textAlign: "center",
+                                            fontSize: "1rem",
+                                            padding: "6px",
+                                            borderRadius: "6px",
+                                            border: "1px solid gray"
+                                            }}
+                                        />
+
+                                        <motion.button
+                                            onClick={handleIncreaseQty}
+                                            style={{
+                                            padding: "10px 15px",
+                                            backgroundColor: "black",
+                                            color: "white",
+                                            borderRadius: "8px",
+                                            border: "none"
+                                            }}
+                                        >
+                                            +
+                                        </motion.button>
+                                    </Stack>
+
+                                </Stack>
+                                
+                                {/* thêm vào giỏ */}
+                                {
+                                    isProductAlreadyInCart?
+                                    <button style={{padding:"10px 15px",fontSize:"1.050rem",backgroundColor:"black",color:"white",outline:"none",border:'none',borderRadius:"8px"}} onClick={()=>navigate("/cart")}>Trong giỏ</button>
+                                    :<motion.button whileHover={{scale:1.050}} whileTap={{scale:1}} onClick={handleAddToCart} style={{padding:"10px 15px",fontSize:"1.050rem",backgroundColor:"black",color:"white",outline:"none",border:'none',borderRadius:"8px"}}>Thêm vào giỏ</motion.button>
+                                }
+
+                                {/* wishlist */}
+                                <motion.div style={{border:"1px solid grayText",borderRadius:"4px",display:"flex",justifyContent:"center",alignItems:"center"}}>
+                                    <Checkbox checked={isProductAlreadyinWishlist} onChange={(e)=>handleAddRemoveFromWishlist(e)} icon={<FavoriteBorder />} checkedIcon={<Favorite sx={{color:'red'}} />} />
+                                </motion.div>
+
+                            </Stack>
+
+                        </Stack>
+                        
+                        }
+
+                        {/* lợi ích sản phẩm */}
+                        <Stack mt={3} sx={{justifyContent:"center",alignItems:'center',border:"1px grayText solid",borderRadius:"7px"}}>
+                            
+                            <Stack p={2} flexDirection={'row'} alignItems={"center"} columnGap={'1rem'} width={'100%'} justifyContent={'flex-sart'}>
+                                <Box>
+                                    <LocalShippingOutlinedIcon/>
+                                </Box>
+                                <Stack>
+                                    <Typography>Giao hàng miễn phí</Typography>
+                                    <Typography>Nhập mã bưu điện để kiểm tra khả năng giao hàng</Typography>
+                                </Stack>
+                            </Stack>
+                            <hr style={{width:"100%"}} />
+                            <Stack p={2} flexDirection={'row'} alignItems={"center"} width={'100%'} columnGap={'1rem'} justifyContent={'flex-start'}>
+                                <Box>
+                                    <CachedOutlinedIcon/>
+                                </Box>
+                                <Stack>
+                                    <Typography>Đổi trả hàng</Typography>
+                                    <Typography>Miễn phí đổi trả trong 30 ngày</Typography>
+                                    <Typography variant="h5">
+                                                {product?.price.toLocaleString('vi-VN')} ₫
+                                    </Typography>
+
+                                </Stack>
+                            </Stack>
+
+                        </Stack>
+
+                    </Stack>
+                    
+                </Stack>
+
+                {/* đánh giá */}
+                <Stack width={is1420?"auto":'88rem'} p={is480?2:0}>
+                    <Reviews productId={id} averageRating={averageRating}/>       
+                </Stack>
+            
+            </Stack>
+        }
+                
+    </Stack>
+    }
+    </>
+
+  )
+}
